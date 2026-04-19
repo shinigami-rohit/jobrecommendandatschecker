@@ -1,30 +1,28 @@
-from flask import Flask, request, jsonify
-import PyPDF2
+from flask import Flask, request, jsonify, send_from_directory
 
 app = Flask(__name__)
 
-def extract_text(file):
-    text = ""
-    reader = PyPDF2.PdfReader(file)
-    for page in reader.pages:
-        text += page.extract_text()
-    return text
+@app.route("/")
+def home():
+    return "ATS Checker running successfully 🚀"
 
-@app.route('/recommend', methods=['POST'])
-def recommend():
-    file = request.files['resume']
-    text = extract_text(file)
+@app.route("/ats", methods=["POST"])
+def ats_score():
+    data = request.get_json()
 
-    # TEMP response (to test route first)
+    resume = data.get("resume", "")
+    job = data.get("job", "")
+
+    resume_words = set(resume.lower().split())
+    job_words = set(job.lower().split())
+
+    match = resume_words.intersection(job_words)
+    score = (len(match) / len(job_words)) * 100 if job_words else 0
+
     return jsonify({
-        "message": "API working",
-        "text_length": len(text)
+        "score": round(score, 2),
+        "matched_words": list(match)
     })
 
-@app.route('/')
-def home():
-    return "ATS Checker running successfully"
-
-if __name__ == '__main__':
-    app.run()
-
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=10000)
