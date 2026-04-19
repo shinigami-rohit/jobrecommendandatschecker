@@ -23,6 +23,13 @@ def ats_score():
         "score": round(score, 2),
         "matched_words": list(match)
     })
+@app.route("/upload", methods=["POST"])
+def upload_resume():
+    file = request.files.get("resume")
 
+    if not file:
+        return {"error": "No file uploaded"}, 400
+
+    return {"message": "File received successfully"}
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)
