@@ -35,29 +35,42 @@ def upload_resume():
 
 @app.route("/analyze", methods=["POST"])
 def analyze_resume():
-    file = request.files.get("resume")
-    job = request.form.get("job", "")
+    try:
+        file = request.files.get("resume")
+        job = request.form.get("job", "")
 
-    if not file:
-        return {"error": "No file uploaded"}, 400
+        if not file:
+            return {"error": "No file uploaded"}, 400
 
-    # Extract text from PDF
-    reader = PyPDF2.PdfReader(file)
-    resume_text = ""
+        if not job:
+            return {"error": "Job description missing"}, 400
 
-    for page in reader.pages:
-        resume_text += page.extract_text()
+        reader = PyPDF2.PdfReader(file)
+        resume_text = ""
 
-    # ATS logic
-    resume_words = set(resume_text.lower().split())
-    job_words = set(job.lower().split())
+        for page in reader.pages:
+            text = page.extract_text()
+            if text:   # prevents crash
+                resume_text += text
 
-    match = resume_words.intersection(job_words)
-    score = (len(match) / len(job_words)) * 100 if job_words else 0
+        if not resume_text:
+            return {"error": "Could not extract text from PDF"}, 400
 
-    return jsonify({
-        "score": round(score, 2),
-        "matched_words": list(match)
-    })
+        resume_words = set(resume_text.lower().split())
+        job_words = set(job.lower().split())
+
+        if not job_words:
+            return {"error": "Invalid job description"}, 400
+
+        match = resume_words.intersection(job_words)
+        score = (len(match) / len(job_words)) * 100
+
+        return jsonify({
+            "score": round(score, 2),
+            "matched_words": list(match)
+        })
+
+    except Exception as e:
+        return {"error": str(e)}, 500
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)
